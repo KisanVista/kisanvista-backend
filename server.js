@@ -14,12 +14,15 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Define your routes here
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
-});
-
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
 const chatbotRoutes = require('./routes/chatbotRoutes');
 app.use('/api/chatbot', chatbotRoutes);
+
+const productRoutes = require('./routes/productRoutes');
+app.use('/api/product', productRoutes);
+
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
+});
