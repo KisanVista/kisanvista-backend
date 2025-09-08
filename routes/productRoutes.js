@@ -11,7 +11,13 @@ router.get('/:id', productController.getProductById);
 // POST a new product (admin only)
 router.post('/', productController.createProduct);
 
+// Update a product by ID
+router.put('/:id', productController.updateProduct);
+
 // DELETE a product by ID
 router.delete('/:id', productController.deleteProduct);
+
+// AI Insights
+router.post('/ai-insights', productController.getAiInsights);
 
 module.exports = router;
