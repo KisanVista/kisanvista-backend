@@ -25,6 +25,7 @@ const productSchema = new mongoose.Schema({
     usage_instructions: { type: [String] },
     crop_suitability: { type: [String] },
     technical_specifications: { type: [String] }
+    
 
 }, {
     timestamps: true
