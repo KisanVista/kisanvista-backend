@@ -19,9 +19,16 @@ const productSchema = new mongoose.Schema({
     },
     product_sub_category: { type: String, required: true },
     product_brand: { type: String, required: true },
-    product_quantity: { type: Number, required: true, min: 0 }
+    product_quantity: { type: Number, required: true, min: 0 },
+
+    // New fields for "More Details"
+    usage_instructions: { type: [String] },
+    crop_suitability: { type: [String] },
+    technical_specifications: { type: [String] }
+    
+
 }, {
-    timestamps: true // This is the correct way to add timestamps
+    timestamps: true
 });
 
 const Product = mongoose.model('Product', productSchema);

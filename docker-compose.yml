@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # -------------------- DATABASES --------------------
+  postgres_db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: kisanvista_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASS}
+      POSTGRES_DB: ${AUTH_DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mongo_db:
+    image: mongo:6.0
+    container_name: kisanvista_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    
+  # -------------------- MICROSERVICES --------------------
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth_service
+    # Links to the PostgreSQL database by service name
+    environment:
+      # Use the service name defined in this file (postgres_db) for hostname
+      AUTH_DB_HOST: postgres_db 
+      AUTH_DB_PORT: 5432
+      # Pass database credentials from the host .env (or define here)
+      AUTH_DB_USER: ${AUTH_DB_USER}
+      AUTH_DB_PASS: ${AUTH_DB_PASS}
+      AUTH_DB_NAME: ${AUTH_DB_NAME}
+    # Expose the port used for service-to-service communication
+    expose:
+      - "5001"
+    depends_on:
+      - postgres_db
+
+  catalog-service:
+    build:
+      context: ./catalog-service
+      dockerfile: Dockerfile
+    container_name: catalog_service
+    environment:
+      # Use the service name defined in this file (mongo_db) for hostname
+      MONGO_URI: mongodb://mongo_db:27017/kisanvista_catalog_db
+      PORT: 5002
+    expose:
+      - "5002"
+    depends_on:
+      - mongo_db
+
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: order_service
+    environment:
+      MONGO_URI: mongodb://mongo_db:27017/kisanvista_orders_db
+      PORT: 5003
+      # CRITICAL: Use the service name for the inter-service call
+      CATALOG_SERVICE_URL: http://catalog-service:5002 
+    expose:
+      - "5003"
+    depends_on:
+      - mongo_db
+      - catalog-service
+
+# --- LOGISTICS SERVICE ---
+  logistics-service:
+    build:
+      context: ./logistics-service
+      dockerfile: Dockerfile
+    container_name: logistics_service
+    environment:
+      LOGISTICS_PORT: 5004
+      # Pass DB connection environment variables to the service container
+      PG_HOST: postgres_db    # Host must be the DB container name
+      PG_PORT: 5432
+      PG_USER: ${PG_USER}     # Pulls from root .env
+      PG_PASSWORD: ${PG_PASSWORD} # Pulls from root .env
+      LOGISTICS_DB_NAME: ${LOGISTICS_DB_NAME}
+    expose:
+      - "5004"
+    depends_on:
+      - postgres_db
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api_gateway
+    # CRITICAL: Link proxies using service names
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:5001
+      CATALOG_SERVICE_URL: http://catalog-service:5002
+      ORDER_SERVICE_URL: http://order-service:5003
+    ports:
+      - "5000:5000" # Expose the public port
+    depends_on:
+      - auth-service
+      - catalog-service
+      - order-service
+
+volumes:
+  postgres_data:
+  mongo_data:
